@@ -51,18 +51,33 @@ def create_table(connection: psycopg2.connect, data: pd.DataFrame, name: str, pk
     assert pk in data.columns
 
     query = f"""
-    CREATE TABLE {name} {{
+    CREATE TABLE {name} (
         {pk} {type_conversion[str(data[pk].dtypes)]} NOT NULL,
     """
     for column_name in data.columns:
         if column_name != pk:
-            query += f"""\t{type_conversion[str(data[column_name].dtypes)]},"""
-    query += f"""\tPRIMARY KEY {pk}
-    }}"""
-    print(query)
+            query += f"""\t{column_name} {type_conversion[str(data[column_name].dtypes)]},\n"""
+    query += f"""\tPRIMARY KEY ({pk})
+    )"""
+
+    cursor = connection.cursor()
+    try:
+        cursor.execute(query)
+        connection.commit()
+        cursor.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
     return
 
 
+def insert_values(connection, database, key, values):
+    cursor = connection.cursor()
+
+    query = f"""INSERT INTO {database}({key}) VALUE(%s)"""
+    try:
+        cursor.executemany(query)
+
 if __name__ == '__main__':
     conn = connect()
-    create_table(conn, )
+    # print(type(conn))
+    create_table(conn, pd.read_csv('data/car_loan_trainset.csv'), 'car_loan_sql', 'customer_id')
