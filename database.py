@@ -75,7 +75,7 @@ def insert_row(connection, table, keys, values):
 
     query = f"""INSERT INTO {table}({','.join([str(x) for x in keys])}) 
     VALUES ({','.join([str(x) for x in values])})""".replace('inf', 'NULL')
-
+    # TODO: find a way to store infinity in Postgres
     # try:
     cursor.execute(query)
     connection.commit()
