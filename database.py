@@ -6,7 +6,7 @@ from configparser import ConfigParser
 
 type_conversion = {
     'int64': 'INTEGER',
-    'float64': 'REAL',
+    'float64': 'NUMERIC',
 }
 
 # from Postgres documentation
@@ -70,14 +70,50 @@ def create_table(connection: psycopg2.connect, data: pd.DataFrame, name: str, pk
     return
 
 
-def insert_values(connection, database, key, values):
+def insert_row(connection, table, keys, values):
     cursor = connection.cursor()
 
-    query = f"""INSERT INTO {database}({key}) VALUE(%s)"""
+    query = f"""INSERT INTO {table}({','.join([str(x) for x in keys])}) 
+    VALUES ({','.join([str(x) for x in values])})""".replace('inf', 'NULL')
+
+    # try:
+    cursor.execute(query)
+    connection.commit()
+    cursor.close()
+    # except (Exception, psycopg2.DatabaseError) as error:
+    #     print(error)
+
+
+def update_values(connection, table, pk_name, pks, key, values):
+    cursor = connection.cursor()
+
+    query = f"""UPDATE {table}
+        SET {key} = %s
+        WHERE {pk_name} = %s"""
     try:
-        cursor.executemany(query)
+        cursor.executemany(query, (
+            [(x) for x in pks],
+            [(x) for x in values],
+        ))
+        connection.commit()
+        cursor.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
 
 if __name__ == '__main__':
     conn = connect()
+    df = pd.read_csv('data/car_loan_trainset.csv')
+    # print(df[df.isnull()])
     # print(type(conn))
-    create_table(conn, pd.read_csv('data/car_loan_trainset.csv'), 'car_loan_sql', 'customer_id')
+    # create_table(conn, pd.read_csv('data/car_loan_trainset.csv'), 'car_loan_sql', 'customer_id')
+    for row in df.values.tolist():
+        keys = df.columns.tolist()
+
+        insert_row(conn, 'car_loan_sql', keys, row)
+    # for key in df.columns:
+    #     if key != 'customer_id':
+    #         insert_row(conn, 'car_loan_sql', key, df[key].tolist())
+    #         update_values(conn, 'car_loan_sql', 'customer_id', df['customer_id'], key, df[key])
+    # insert_values(conn, 'car_loan_sql', )
+
