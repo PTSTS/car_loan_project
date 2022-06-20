@@ -48,6 +48,13 @@ def create_prediction_table(name, df):
         print(error)
 
 
+def insert_predictions(all_predictions):
+    connection = connect()
+    for row in all_predictions.values.tolist():
+        keys = all_predictions.columns
+        insert_row(connection, 'prediction', keys, row)
+
+
 if __name__ == '__main__':
     path = 'data/car_loan_trainset.csv'
     encoder = pickle.load(open(one_hot_encoder_path, 'rb'))
@@ -72,7 +79,6 @@ if __name__ == '__main__':
     x_columns.remove(y_label)
 
     # df = pd.concat([pd.read_csv(path)['customer_id'], pd.read_csv(encoded_data_path)], 1)
-    # encoded = encoder.fit(df[x_columns])
     model, optimizer = load_model(model_save_path, len(x_columns), lr=0.000001)
 
     print('Predicting...')
@@ -92,11 +98,11 @@ if __name__ == '__main__':
     print(binary_cross_entropy(torch.tensor(all_predictions['prediction']).double(),
                                torch.tensor(all_predictions[y_label]).double()))
 
-    connection = connect()
-    for row in all_predictions.values.tolist():
-        keys = all_predictions.columns
-
-        insert_row(connection, 'prediction', keys, row)
+    # connection = connect()
+    # for row in all_predictions.values.tolist():
+    #     keys = all_predictions.columns
+    #
+    #     insert_row(connection, 'prediction', keys, row)
     #
     # update_values(
     #     connection,

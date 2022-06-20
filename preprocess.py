@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 from tqdm import tqdm
 import numpy as np
 from torch.nn import Linear, Dropout
+import pickle
 
 
 categorical_columns = [
@@ -42,6 +43,44 @@ def pca(df, n_components=200):
     pca_model = PCA(n_components)
     df = pca_model.fit_transform(df)
     return df, pca_model
+
+
+def preprocess_pipeline(
+        df,
+        encoder_path='',
+        pk_column='customer_id',
+        label='loan_default',
+        encode=False,
+        encoder_save_path=''
+):
+
+    for col in df.columns:
+        mask = df[col] != np.inf
+        df.loc[~mask, col] = df.loc[mask, col].max()
+
+        mask = df[col].isnull()
+        df.loc[mask, col] = df.loc[~mask, col].min()
+
+    # df = df.drop(pk_column, 1)
+
+    numerical_columns = [x for x in df.columns if x not in categorical_columns and x != pk_column]
+    x_columns = list(df[numerical_columns])
+    x_columns.remove(label)
+
+    if encode:
+        if encoder_path:
+            encoder = pickle.load(open(encoder_path, 'rb'))
+            encoded_data = encoder.transform(df[categorical_columns]).toarray()
+        else:
+            encoded_data, encoder = one_hot_encode(df, categorical_columns)
+        df = df.drop(categorical_columns, 1)
+        df = pd.concat(
+            [df, pd.DataFrame(encoded_data)],
+            axis=1
+        )
+        if encoder_save_path:
+            pickle.dump(encoder, open(encoder_save_path, 'wb+'))
+    return df, x_columns
 
 
 if __name__ == '__main__':
