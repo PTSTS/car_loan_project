@@ -1,3 +1,4 @@
 
 database.ini
 *.pyc
+data/car_loan_encoded.csv
