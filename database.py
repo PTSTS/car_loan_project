@@ -87,18 +87,18 @@ def insert_row(connection, table, keys, values):
 def update_values(connection, table, pk_name, pks, key, values):
     cursor = connection.cursor()
 
-    query = f"""UPDATE {table}
-        SET {key} = %s
-        WHERE {pk_name} = %s"""
-    try:
-        cursor.executemany(query, (
-            [(x) for x in pks],
-            [(x) for x in values],
-        ))
-        connection.commit()
-        cursor.close()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+    for i, value in enumerate(values):
+        pk = pks[i]
+        query = f"""UPDATE {table}
+            SET {key} = {value}
+            WHERE {pk_name} = {pk};"""
+    # try:
+
+        cursor.execute(query)
+    connection.commit()
+    cursor.close()
+    # except (Exception, psycopg2.DatabaseError) as error:
+    #     print(error)
 
 
 if __name__ == '__main__':
