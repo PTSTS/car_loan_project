@@ -57,7 +57,7 @@ def insert_predictions(all_predictions):
 
 if __name__ == '__main__':
     path = 'data/car_loan_trainset.csv'
-    encoder = pickle.load(open(one_hot_encoder_path, 'rb'))
+    # encoder = pickle.load(open(one_hot_encoder_path, 'rb'))
     df = pd.read_csv(path)
     y_label = 'loan_default'
     for col in df.columns:

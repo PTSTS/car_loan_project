@@ -31,7 +31,7 @@ def connect():
         print('Connecting to the PostgreSQL database...')
         conn = psycopg2.connect(
             **params,
-            password=getpass.getpass(prompt='Password:',stream=None),
+            # password=getpass.getpass(prompt='Password:',stream=None),
         )
         return conn
 
