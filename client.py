@@ -38,24 +38,6 @@ def predict(features, session, need_login=True):
 
 
 if __name__ == '__main__':
-    # response = requests.post(
-    #     url + 'register',
-    #     json.dumps({'username': 'newuser', 'password': 'newpassword'})
-    # )
-    # print(response.text)
-    #
-    # exit()
-
-
-    # login('abc', 'abc')
-    # exit()
-    # path = 'data/car_loan_trainset.csv'
-    # model_save_path = 'saved/model_no_id'
-    # df = pd.read_csv(path).tail(3)
-    #
-    # df, x_columns = preprocess_pipeline(df)
-    # features = df[x_columns].to_numpy()
     session = requests.session()
     login('abc', 'abc', session)
     login('abc', 'abc', session)
-    # predict(features, need_login=True)

@@ -16,8 +16,12 @@ login_manager.init_app(app)
 authenticated_users = []
 
 
-@app.route('/predict', methods=['POST', 'GET'])
+@app.route('/predict', methods=['POST'])
 def make_prediction():
+    """
+    Predict with features, data: {'feature_1': value_1,...}, user authentication needed.
+    :return: if logged in: predicted value, else error response
+    """
     if current_user.is_authenticated:
         features = json.loads(request.data)
         prediction = predict(model, features)
@@ -28,6 +32,10 @@ def make_prediction():
 
 @app.route('/predict_no_login', methods=['POST'])
 def make_prediction_no_login():
+    """
+    Predict with features, data: {'feature_1': value_1,...}, user authentication not needed.
+    :return: predicted value
+    """
     features = json.loads(request.data)
     prediction = predict(model, features)
     submit_prediction(prediction, features)
@@ -36,6 +44,10 @@ def make_prediction_no_login():
 
 @app.route('/register', methods=['POST', ])
 def register():
+    """
+    Register user in the DB
+    :return: response
+    """
     data = json.loads(request.data)
     sql = f"""SELECT * FROM users WHERE username = '{data['username']}';"""
 
@@ -63,11 +75,14 @@ def register():
     return Response('User registration successful!', 200)
 
 
-@app.route('/login', methods = ['POST', 'GET'])
+@app.route('/login', methods = ['POST'])
 def login():
+    """
+    Login, data: {'username':..., 'password':,,,}
+    :return: response
+    """
     data = json.loads(request.data)
     if current_user.is_authenticated:
-    # if session.get('logged_in'):
         return Response('Already logged in.', 200)
     cursor = connection.cursor()
     sql = f"""SELECT * FROM users WHERE username = '{data['username']}'
@@ -81,7 +96,6 @@ def login():
             login_user(user, remember=True)
             session['logged_in'] = True
             return Response('Logged in', 200)
-            return redirect('/')
         else:
             return Response('Wrong user credentials', 401)
     except (Exception, psycopg2.DatabaseError) as error:
@@ -90,6 +104,12 @@ def login():
 
 
 def submit_prediction(prediction, features, customer_id=None):
+    """
+    Submit prediction to the DB
+    :param float prediction: prediction to be stored
+    :param iterable features: list of features, must be numerical
+    :param Optional[int] customer_id:
+    """
     cursor = connection.cursor()
     if customer_id is not None:
         sql = f"""INSERT INTO user_prediction (customer_id, prediction, features, time_predicted)
@@ -135,15 +155,14 @@ class User():
 
 
 if __name__ == '__main__':
-    # model is loaded in __main__
     connection = connect()
 
     path = 'data/car_loan_trainset.csv'
     model_save_path = 'saved/model_no_id'
-    df = pd.read_csv(path).tail(100)
+    df = pd.read_csv(path).head(1)
     df, x_columns = preprocess_pipeline(df)
 
     model, optimizer = load_model(model_save_path, len(x_columns), lr=0.000001)
 
-app.run(debug=False)
+    app.run(debug=False)
 
