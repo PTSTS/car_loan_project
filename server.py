@@ -1,20 +1,22 @@
 import json
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, session, redirect
 import pandas as pd
 from preprocess import preprocess_pipeline
 from predict import load_model, predict
 from database import connect
 import psycopg2
-from flask_login import current_user, login_user, UserMixin, LoginManager
+from flask_login import current_user, login_user, UserMixin, LoginManager, login_required
 
 
+login_manager = LoginManager()
 app = Flask(__name__)
 app.secret_key = 'abc'
-login_manager = LoginManager()
 login_manager.init_app(app)
 
+authenticated_users = []
 
-@app.route('/predict', methods=['POST'])
+
+@app.route('/predict', methods=['POST', 'GET'])
 def make_prediction():
     if current_user.is_authenticated:
         features = json.loads(request.data)
@@ -32,7 +34,7 @@ def make_prediction_no_login():
     return jsonify(prediction)
 
 
-@app.route('/register', methods=['POST'])
+@app.route('/register', methods=['POST', ])
 def register():
     data = json.loads(request.data)
     sql = f"""SELECT * FROM users WHERE username = '{data['username']}';"""
@@ -63,30 +65,28 @@ def register():
 
 @app.route('/login', methods = ['POST', 'GET'])
 def login():
+    data = json.loads(request.data)
     if current_user.is_authenticated:
+    # if session.get('logged_in'):
         return Response('Already logged in.', 200)
-    if request.method == 'POST':
-        data = json.loads(request.data)
-        cursor = connection.cursor()
-        sql = f"""SELECT * FROM users WHERE username = '{data['username']}'
-        AND password = crypt('{data['password']}', password);"""
+    cursor = connection.cursor()
+    sql = f"""SELECT * FROM users WHERE username = '{data['username']}'
+    AND password = crypt('{data['password']}', password);"""
 
-        try:
-            cursor.execute(sql)
-            connection.commit()
-            if len(cursor.fetchall()):
-                login_user(User(data['username'], hash=None))
-                return Response('Logged in.', 200)
-            else:
-                return Response('Wrong user credentials', 401)
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-            return Response('Sorry, server error.', 404)
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User(user_id, None)
+    try:
+        cursor.execute(sql)
+        connection.commit()
+        if len(cursor.fetchall()):
+            user = load_user(data['username'])
+            login_user(user, remember=True)
+            session['logged_in'] = True
+            return Response('Logged in', 200)
+            return redirect('/')
+        else:
+            return Response('Wrong user credentials', 401)
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+        return Response('Sorry, server error.', 404)
 
 
 def submit_prediction(prediction, features, customer_id=None):
@@ -103,12 +103,34 @@ def submit_prediction(prediction, features, customer_id=None):
     cursor.close()
 
 
-class User(UserMixin):
+@login_manager.user_loader
+def load_user(id):
+    for user in  authenticated_users:
+        if user.id == id:
+            return user
+    return User(id, None)
+
+
+class User():
     def __init__(self, username, hash):
         self.username = username
 
     @property
     def id(self):
+        return self.username
+
+    @property
+    def is_authenticated(self):
+        return True
+    #
+    def is_active(self):
+        return self.is_active
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
         return self.username
 
 
@@ -123,4 +145,5 @@ if __name__ == '__main__':
 
     model, optimizer = load_model(model_save_path, len(x_columns), lr=0.000001)
 
-    app.run(debug=True)
+app.run(debug=False)
+

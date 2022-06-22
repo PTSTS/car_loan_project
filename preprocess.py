@@ -51,7 +51,10 @@ def preprocess_pipeline(
         pk_column='customer_id',
         label='loan_default',
         encode=False,
-        encoder_save_path=''
+        encoder_save_path='',
+        scaler_path='',
+        scale=False,
+        scaler_save_path='',
 ):
 
     for col in df.columns:
@@ -60,8 +63,6 @@ def preprocess_pipeline(
 
         mask = df[col].isnull()
         df.loc[mask, col] = df.loc[~mask, col].min()
-
-    # df = df.drop(pk_column, 1)
 
     numerical_columns = [x for x in df.columns if x not in categorical_columns and x != pk_column]
     x_columns = list(df[numerical_columns])
@@ -80,6 +81,17 @@ def preprocess_pipeline(
         )
         if encoder_save_path:
             pickle.dump(encoder, open(encoder_save_path, 'wb+'))
+
+    if scale:
+        if not scaler_path:
+            scaler = preprocessing.StandardScaler()
+            scaler.fit(df[x_columns])
+        else:
+            scaler = pickle.load(open(scaler_path, 'rb'))
+        df[x_columns] = pd.DataFrame(scaler.transform(df[x_columns]))
+        if scaler_save_path:
+            pickle.dump(scaler, open(scaler_save_path, 'wb+'))
+
     return df, x_columns
 
 

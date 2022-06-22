@@ -19,21 +19,21 @@ def register(username, password):
     print(response.text)
 
 
-def login(username, password):
-    response = requests.post(
+def login(username, password, session):
+    response = session.post(
         url + 'login',
         json.dumps({'username': username, 'password': password})
     )
     print(response.text)
 
 
-def predict(features, need_login=True):
+def predict(features, session, need_login=True):
     for feature in features:
         data = json.dumps(list(feature))
         if need_login:
-            response = requests.post(url + 'predict', data)
+            response = session.post(url + 'predict', data)
         else:
-            response = requests.post(url + 'predict_no_login', data)
+            response = session.post(url + 'predict_no_login', data)
         print(response, response.text)
 
 
@@ -49,10 +49,13 @@ if __name__ == '__main__':
 
     # login('abc', 'abc')
     # exit()
-    path = 'data/car_loan_trainset.csv'
-    model_save_path = 'saved/model_no_id'
-    df = pd.read_csv(path).tail(3)
-
-    df, x_columns = preprocess_pipeline(df)
-    features = df[x_columns].to_numpy()
-    predict(features, need_login=False)
+    # path = 'data/car_loan_trainset.csv'
+    # model_save_path = 'saved/model_no_id'
+    # df = pd.read_csv(path).tail(3)
+    #
+    # df, x_columns = preprocess_pipeline(df)
+    # features = df[x_columns].to_numpy()
+    session = requests.session()
+    login('abc', 'abc', session)
+    login('abc', 'abc', session)
+    # predict(features, need_login=True)
